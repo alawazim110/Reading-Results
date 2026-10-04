@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elementary Results System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="active">Home</a>
+        <a href="teacher.html">Teacher Profile & Portfolio</a>
+    </nav>
+
+    <div class="container">
+        <h1>Elementary School Results Management System</h1>
+        <p>Select a grade level and then a class to view the progress report:</p>
+
+        <div id="grades-container" class="grid-container">
+            <!-- Dynamic Class Buttons -->
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", renderGradeSelection);
+    </script>
+</body>
+</html>

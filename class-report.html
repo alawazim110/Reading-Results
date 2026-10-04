@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Results Report</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="teacher.html">Teacher Profile & Portfolio</a>
+    </nav>
+
+    <div class="container">
+        <h1 id="class-title">Class Results Report</h1>
+        
+        <!-- Form to add a new score -->
+        <div class="card">
+            <h3>Add New Score (Max 5 results per student)</h3>
+            <div class="form-group">
+                <input type="text" id="student-name" placeholder="Enter National ID">
+                <input type="number" id="student-score" placeholder="Score (e.g., 85)">
+                <button onclick="handleAddScore()">Submit Score</button>
+            </div>
+            <small style="color: #666; margin-top: 5px; display: block;">
+                * When adding a 6th score, the oldest score will be automatically removed (Queue FIFO).
+            </small>
+        </div>
+
+        <!-- Results Table -->
+        <div class="card">
+            <h2>Reading Performance & Progress Report</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>National ID</th>
+                        <th>Student Name</th>
+                        <th>Registered Scores (Max 5)</th>
+                        <th>First Score</th>
+                        <th>Latest Score</th>
+                        <th>Progress %</th>
+                    </tr>
+                </thead>
+                <tbody id="report-table-body">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", loadClassReport);
+    </script>
+</body>
+</html>
