@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Results System</title>
+    <title id="pageTitle">Reading & Task Assessment System</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -16,7 +16,7 @@
             background-color: var(--bg-color);
             margin: 0;
             padding: 20px;
-            direction: rtl;
+            direction: ltr;
         }
 
         .container {
@@ -33,7 +33,7 @@
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
-            align-items: center;
+            align-items: flex-end;
         }
 
         .form-group {
@@ -41,7 +41,7 @@
             flex-direction: column;
             gap: 5px;
             flex: 1;
-            min-width: 200px;
+            min-width: 180px;
         }
 
         label {
@@ -49,13 +49,12 @@
             color: var(--primary-color);
         }
 
-        select {
+        select, input[type="text"] {
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 1rem;
             outline: none;
-            cursor: pointer;
         }
 
         .class-section {
@@ -77,6 +76,21 @@
             text-align: right;
         }
 
+        .report-header-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .task-badge {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+
+        /* اتجاه الجداول من اليمين إلى اليسار */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -86,7 +100,7 @@
 
         th, td {
             border: 1px solid #e0e0e0;
-            padding: 12px 6px;
+            padding: 8px 4px;
             font-size: 0.9rem;
         }
 
@@ -94,6 +108,15 @@
             background-color: #f1f5f9;
             color: var(--primary-color);
             font-weight: 700;
+        }
+
+        .score-input {
+            width: 50px;
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-weight: bold;
         }
 
         .score-high { color: #27ae60; font-weight: bold; }
@@ -114,6 +137,10 @@
             body { background: white; padding: 0; }
             .class-section { box-shadow: none; padding: 0; margin-bottom: 0; page-break-after: always; }
             table, th, td { border: 1px solid #000; }
+            .score-input {
+                border: none;
+                background: transparent;
+            }
         }
     </style>
 </head>
@@ -121,35 +148,52 @@
 
 <div class="container">
     
-    <!-- واجهة اختيار الفصل والمرحلة (تم عكس الترتيب هنا) -->
+    <!-- Dynamic Main Title & Subtitle -->
+    <h1 id="reportTitleHeader" class="report-header-title">Reading Assessment Report</h1>
+    <div id="taskSubHeader" class="task-badge">Current Story/Task: General Task</div>
+
+    <!-- Controls Card -->
     <div class="selector-card">
-        <div class="form-group">
-            <label for="classSelect">Select Class:</label>
-            <select id="classSelect" onchange="renderFilteredData()" disabled>
-                <option value="">-- Select Class --</option>
+        
+        <div class="form-group" style="flex: 2;">
+            <label for="taskSelect">Story / Task Records:</label>
+            <select id="taskSelect" onchange="switchTaskRecord(this.value)">
+                <!-- Dynamically populated -->
             </select>
         </div>
 
+        <div class="form-group" style="flex: 2;">
+            <label for="reportTitleInput">Story/Task Title (Edit):</label>
+            <input type="text" id="reportTitleInput" placeholder="e.g. The Boy Who Cried Wolf" oninput="onManualTitleChange(this.value)">
+        </div>
+
         <div class="form-group">
-            <label for="stageSelect">Select Grade:</label>
+            <label for="stageSelect">Grade / Stage:</label>
             <select id="stageSelect" onchange="onStageChange()">
                 <option value="">-- Select Grade --</option>
             </select>
         </div>
 
-        <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; height: fit-content; align-self: flex-end;">Print Report 🖨️</button>
+        <div class="form-group">
+            <label for="classSelect">Class / Section:</label>
+            <select id="classSelect" onchange="renderFilteredData()" disabled>
+                <option value="">-- Select Class --</option>
+            </select>
+        </div>
+
+        <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; height: fit-content;">Print Report 🖨️</button>
     </div>
 
-    <!-- مكان عرض جداول النتائج -->
+    <!-- Data Display Area -->
     <div id="dataContainer">
-        <div class="status-box">Loading data...</div>
+        <div class="status-box">Loading records...</div>
     </div>
 
 </div>
 
 <script>
-    // 1. البيانات إما مباشرة أو في هيكل متداخل (مراحل -> فصول -> طلاب)
-    let nestedData = {
+    // Complete Base Student Structure with Test Grade/Class Restored
+    const baseStudentsStructure = {
          "Grade 1": {
     "1": [
       { "id": "1194879258", "name": "آدم محمود محمد اصباخ" },
@@ -350,7 +394,7 @@
       { "id": "1193542972", "name": "حسن علي عبدالله آل فردان" },
       { "id": "1190906154", "name": "حسين علي حسين المحسن" },
       { "id": "1195014889", "name": "حيدر محمد بن حسن آل زرع" },
-      { "id": "1189730367", "name": "ريان احمد بن علي آل سليس" },
+      { "id": "189730367", "name": "ريان احمد بن علي آل سليس" },
       { "id": "1194216121", "name": "عباس علي سمير الدار" },
       { "id": "1192901179", "name": "عباس علي مهدي الامرد" },
       { "id": "1193217245", "name": "عباس محمد بن احمد العجمي" },
@@ -534,10 +578,56 @@
               { "id": "1195929169", "name": "نائل ايمن بن عبدالمحسن آل دهنيم" },
               { "id": "1182307585", "name": "هادي علي بن محمدنجيب دهنيم" }
             ]
+        },
+        "Test Grade": {
+            "Test Class": [
+                { "id": "9999", "name": "Teacher Test", "results": [0,0,0,0,0] }
+            ]
         }
     };
 
-    // 2. دالة تحويل البيانات الهيكلية المتداخلة إلى مصفوفة بسيطة يفهمها الجدول
+    let tasksRecords = {};
+    let currentTaskKey = "General Task";
+    let currentRawData = [];
+
+    function formatStoryTitle(title) {
+        if (!title) return "General Task";
+        let cleaned = decodeURIComponent(title).trim();
+        if (cleaned.includes('_')) {
+            cleaned = cleaned.replace(/_/g, ' ');
+        }
+        return cleaned;
+    }
+
+    function initSystem() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Retrieve story name from URL parameters (?task=... or ?story=... or ?title=...)
+        const taskFromUrl = urlParams.get('task') || urlParams.get('story') || urlParams.get('title');
+        if (taskFromUrl) {
+            currentTaskKey = formatStoryTitle(taskFromUrl);
+        }
+
+        // Parse JSON score data if passed via URL (?data=...)
+        const externalData = urlParams.get('data');
+        if (externalData) {
+            try {
+                const parsed = JSON.parse(decodeURIComponent(externalData));
+                tasksRecords[currentTaskKey] = transformNestedData(parsed);
+            } catch (e) {
+                console.error("Error parsing URL parameters data", e);
+            }
+        }
+
+        // Initialize task record with base student list if not present
+        if (!tasksRecords[currentTaskKey]) {
+            tasksRecords[currentTaskKey] = transformNestedData(baseStudentsStructure);
+        }
+
+        updateTaskDropdown();
+        loadCurrentTaskData(currentTaskKey);
+    }
+
     function transformNestedData(data) {
         const result = [];
         for (const stage in data) {
@@ -550,7 +640,7 @@
                         className: className,
                         name: student.name || "",
                         nationalId: student.nationalId || student.id || "",
-                        results: student.results || []
+                        results: student.results ? [...student.results] : [0, 0, 0, 0, 0]
                     });
                 }
             }
@@ -558,23 +648,64 @@
         return result;
     }
 
-    // المصفوفة الأساسية التي يتعامل معها النظام
-    let rawData = transformNestedData(nestedData);
+    function updateTaskDropdown() {
+        const taskSelect = document.getElementById('taskSelect');
+        taskSelect.innerHTML = '';
+        
+        Object.keys(tasksRecords).forEach(taskName => {
+            const opt = document.createElement('option');
+            opt.value = taskName;
+            opt.innerText = "📖 " + taskName;
+            if (taskName === currentTaskKey) opt.selected = true;
+            taskSelect.appendChild(opt);
+        });
+    }
 
-    // بدء المعالجة
-    function loadStudentData() {
+    function loadCurrentTaskData(taskName) {
+        currentTaskKey = taskName;
+        currentRawData = tasksRecords[currentTaskKey];
+
+        // Update headers, labels, and browser document title
+        document.title = `${currentTaskKey} - Reading Report`;
+        document.getElementById('reportTitleHeader').innerText = currentTaskKey;
+        document.getElementById('taskSubHeader').innerText = `Current Story / Task: ${currentTaskKey}`;
+        document.getElementById('reportTitleInput').value = currentTaskKey;
+
         initStageDropdown();
         renderFilteredData();
     }
 
+    function switchTaskRecord(newTaskName) {
+        loadCurrentTaskData(newTaskName);
+    }
+
+    function onManualTitleChange(newTitle) {
+        const formattedTitle = newTitle.trim() || "Untitled Task";
+        
+        if (formattedTitle !== currentTaskKey) {
+            tasksRecords[formattedTitle] = tasksRecords[currentTaskKey];
+            delete tasksRecords[currentTaskKey];
+            currentTaskKey = formattedTitle;
+            
+            document.title = `${currentTaskKey} - Reading Report`;
+            document.getElementById('reportTitleHeader').innerText = currentTaskKey;
+            document.getElementById('taskSubHeader').innerText = `Current Story / Task: ${currentTaskKey}`;
+            updateTaskDropdown();
+        }
+    }
+
     function initStageDropdown() {
         const stageSelect = document.getElementById('stageSelect');
-        const stages = [...new Set(rawData.map(item => item.stage))];
+        const stages = [...new Set(currentRawData.map(item => item.stage))];
 
         stageSelect.innerHTML = '<option value="">-- All Grades --</option>';
         stages.forEach(stage => {
-            stageSelect.innerHTML += `<option value="${stage}">${stage}</option>`;
+            const isTest = stage === "Test Grade";
+            stageSelect.innerHTML += `<option value="${stage}">${isTest ? "🧪 " + stage : stage}</option>`;
         });
+
+        document.getElementById('classSelect').disabled = true;
+        document.getElementById('classSelect').innerHTML = '<option value="">-- All Classes --</option>';
     }
 
     function onStageChange() {
@@ -584,9 +715,10 @@
         classSelect.innerHTML = '<option value="">-- All Classes --</option>';
 
         if (selectedStage) {
-            const filteredClasses = [...new Set(rawData.filter(item => item.stage === selectedStage).map(item => item.className))];
+            const filteredClasses = [...new Set(currentRawData.filter(item => item.stage === selectedStage).map(item => item.className))];
             filteredClasses.forEach(c => {
-                classSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                const isTest = c === "Test Class";
+                classSelect.innerHTML += `<option value="${c}">${isTest ? "🧪 " + c : "Class " + c}</option>`;
             });
             classSelect.disabled = false;
         } else {
@@ -600,7 +732,7 @@
         const selectedStage = document.getElementById('stageSelect').value;
         const selectedClass = document.getElementById('classSelect').value;
 
-        let filtered = rawData;
+        let filtered = currentRawData;
 
         if (selectedStage) {
             filtered = filtered.filter(item => item.stage === selectedStage);
@@ -615,31 +747,36 @@
     function getLatestFiveScores(scores) {
         if (!Array.isArray(scores)) return [0, 0, 0, 0, 0];
         let latest = [...scores];
-        if (latest.length > 5) {
-            latest = latest.slice(-5);
-        }
-        while (latest.length < 5) {
-            latest.unshift(0);
-        }
+        if (latest.length > 5) latest = latest.slice(-5);
+        while (latest.length < 5) latest.push(0);
         return latest;
     }
 
+    function updateScore(studentId, scoreIndex, newValue) {
+        const student = currentRawData.find(s => s.nationalId === studentId);
+        if (student) {
+            const val = parseFloat(newValue) || 0;
+            while (student.results.length < 5) student.results.push(0);
+            student.results[scoreIndex] = val;
+
+            const scores = getLatestFiveScores(student.results);
+            const progress = calculateProgress(scores);
+            const progressCell = document.getElementById(`progress-${studentId}`);
+            if (progressCell) {
+                progressCell.innerText = progress > 0 ? `+${progress}%` : `${progress}%`;
+                progressCell.className = getProgressClass(progress);
+            }
+        }
+    }
+
     function calculateProgress(scores) {
-        const validScores = scores.filter(s => s > 0);
+        const validScores = scores.map(s => Number(s)).filter(s => s > 0);
         if (validScores.length < 2) return 0;
 
         const firstScore = validScores[0];
         const lastScore = validScores[validScores.length - 1];
         
-        const diff = lastScore - firstScore;
-        return ((diff / firstScore) * 100).toFixed(1);
-    }
-
-    function getScoreClass(score) {
-        if (score === 0) return '';
-        if (score >= 85) return 'score-high';
-        if (score >= 60) return 'score-medium';
-        return 'score-low';
+        return (((lastScore - firstScore) / firstScore) * 100).toFixed(1);
     }
 
     function getProgressClass(progress) {
@@ -653,7 +790,7 @@
         container.innerHTML = '';
 
         if (data.length === 0) {
-            container.innerHTML = '<div class="status-box">No data available matching the selected filters.</div>';
+            container.innerHTML = '<div class="status-box">No records found for this story.</div>';
             return;
         }
 
@@ -667,18 +804,18 @@
         for (const [classKey, students] of Object.entries(groupedByClass)) {
             let tableHTML = `
                 <div class="class-section">
-                    <h2 class="class-title">Grade & Class: ${classKey}</h2>
+                    <h2 class="class-title">${classKey} - [ ${currentTaskKey} ]</h2>
                     <table>
                         <thead>
                             <tr>
                                 <th>#</th>
                                 <th>Student Name</th>
                                 <th>National ID</th>
-                                <th>Score 1</th>
-                                <th>Score 2</th>
-                                <th>Score 3</th>
-                                <th>Score 4</th>
-                                <th>Score 5</th>
+                                <th>Attempt 1</th>
+                                <th>Attempt 2</th>
+                                <th>Attempt 3</th>
+                                <th>Attempt 4</th>
+                                <th>Attempt 5</th>
                                 <th>Progress (%)</th>
                             </tr>
                         </thead>
@@ -689,18 +826,21 @@
                 const scores = getLatestFiveScores(student.results || []);
                 const progress = calculateProgress(scores);
                 const progressText = progress > 0 ? `+${progress}%` : `${progress}%`;
+                const isTestUser = student.nationalId === "9999";
 
                 tableHTML += `
-                    <tr>
+                    <tr style="${isTestUser ? 'background-color: #fef9c3;' : ''}">
                         <td>${index + 1}</td>
                         <td style="text-align: right; font-weight: 500;">${student.name}</td>
                         <td>${student.nationalId}</td>
-                        <td class="${getScoreClass(scores[0])}">${scores[0] || '-'}</td>
-                        <td class="${getScoreClass(scores[1])}">${scores[1] || '-'}</td>
-                        <td class="${getScoreClass(scores[2])}">${scores[2] || '-'}</td>
-                        <td class="${getScoreClass(scores[3])}">${scores[3] || '-'}</td>
-                        <td class="${getScoreClass(scores[4])}">${scores[4] || '-'}</td>
-                        <td class="${getProgressClass(progress)}">${progressText}</td>
+                        ${scores.map((score, idx) => `
+                            <td>
+                                <input type="number" min="0" max="100" class="score-input" 
+                                       value="${score || ''}" 
+                                       oninput="updateScore('${student.nationalId}',${idx}, this.value)">
+                            </td>
+                        `).join('')}
+                        <td id="progress-${student.nationalId}" class="${getProgressClass(progress)}">${progressText}</td>
                     </tr>
                 `;
             });
@@ -715,7 +855,7 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', loadStudentData);
+    document.addEventListener('DOMContentLoaded', initSystem);
 </script>
 </body>
 </html>
