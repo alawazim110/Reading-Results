@@ -1,0 +1,28 @@
+- name: Update data.json
+        env:
+          STUDENT_NAME: ${{ github.event.client_payload.student_name }}
+          NATIONAL_ID: ${{ github.event.client_payload.national_id }}
+          SCORE: ${{ github.event.client_payload.score }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const filePath = "data.json";
+            
+            let data = [];
+            if (fs.existsSync(filePath)) {
+              try {
+                data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+              } catch (e) {
+                data = [];
+              }
+            }
+            
+            data.push({
+              student: process.env.STUDENT_NAME,
+              national_id: process.env.NATIONAL_ID,
+              score: Number(process.env.SCORE),
+              date: new Date().toISOString()
+            });
+            
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+          '
