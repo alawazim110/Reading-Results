@@ -3,7 +3,7 @@ name: Update Student Scores
 on:
   # Allows external API/webhooks to trigger this workflow
   repository_dispatch:
-    types: [update-scores, student-scores-updated]
+    types: [student_score, update-scores, student-scores-updated]
   
   # Allows manual triggering from the GitHub Actions UI
   workflow_dispatch:
