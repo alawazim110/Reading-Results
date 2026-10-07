@@ -1,100 +1,51 @@
 name: Update Student Scores
 
 on:
-  # Allows external API/webhooks to trigger this workflow
   repository_dispatch:
     types: [student_score, update-scores, student-scores-updated]
-  
-  # Allows manual triggering from the GitHub Actions UI
   workflow_dispatch:
-    inputs:
-      scores_payload:
-        description: 'Optional JSON string or payload identifier for score updates'
-        required: false
-        default: '{}'
 
 jobs:
-  update-scores:
-    name: Process and Update Scores
+  update-score:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Validate Event Payload
-        id: validate-payload
-        run: |
-          echo "::group::Validating Event Payload"
-          
-          # Extract payload based on trigger event
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            PAYLOAD='${{ toJson(github.event.client_payload) }}'
-          else
-            PAYLOAD='${{ github.event.inputs.scores_payload }}'
-          fi
-
-          # Basic JSON validation check
-          if ! echo "$PAYLOAD" | jq . >/dev/null 2>&1; then
-            echo "::error::Invalid JSON payload provided."
-            exit 1
-          fi
-
-          echo "Payload validated successfully."
-          echo "::endgroup::"
-
-      - name: Execute Score Update Script
+      - name: Update Student Score in students.json
         id: process-scores
         run: |
           echo "::group::Updating Student Scores"
           
-          # Pass the event context to your update script
-          if python scripts/update_scores.py \
-              --event-name "${{ github.event_name }}" \
-              --payload '${{ toJson(github.event.client_payload) }}'; then
+          STUDENT_NAME='${{ github.event.client_payload.student_name }}'
+          NATIONAL_ID='${{ github.event.client_payload.national_id }}'
+          SCORE='${{ github.event.client_payload.score }}'
+
+          if [ -n "$NATIONAL_ID" ] && [ -n "$SCORE" ]; then
+            jq --arg id "$NATIONAL_ID" --arg name "$STUDENT_NAME" --arg score "$SCORE" \
+               'map(if .national_id == $id then .score = $score | .student_name = $name else . end) | if any(.[]; .national_id == $id) then . else . + [{"national_id": $id, "student_name": $name, "score": $score}] end' \
+               students.json > tmp.json && mv tmp.json students.json
+            
             echo "scores_updated=true" >> $GITHUB_OUTPUT
-            echo "Status: Scores processed successfully."
+            echo "Status: Score updated successfully for ID: $NATIONAL_ID"
           else
-            echo "::error::Score update script encountered an unhandled exception or exit code."
+            echo "::warning::No payload received (Manual test run)."
             echo "scores_updated=false" >> $GITHUB_OUTPUT
-            exit 1
           fi
           
           echo "::endgroup::"
 
-      - name: Commit Updated Scores
+      - name: Commit and Push Updates
         if: success() && steps.process-scores.outputs.scores_updated == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           
-          # Stage changes to student data files (adjust path as needed)
-          git add data/scores/
+          git add students.json
           
           if git diff --staged --quiet; then
-            echo "No changes in student scores to commit."
+            echo "No changes to commit."
           else
-            git commit -m "chore(scores): update student scores [skip ci]"
+            git commit -m "chore: update student score [skip ci]"
             git push
-          fi
-
-      - name: Generate Job Summary
-        if: always()
-        run: |
-          echo "### 📊 Student Scores Update Results" >> $GITHUB_STEP_SUMMARY
-          echo "- **Trigger Event:** \`${{ github.event_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Execution Status:** ${{ job.status == 'success' && '✅ Succeeded' || '❌ Failed' }}"
-          
-          if [ "${{ job.status }}" != "success" ]; then
-            echo "⚠️ *Please review the job logs for detailed error trace information.*" >> $GITHUB_STEP_SUMMARY
           fi
