@@ -1,4 +1,4 @@
-- name: Update data.json
+- name: Update students.json
         env:
           STUDENT_NAME: ${{ github.event.client_payload.student_name }}
           NATIONAL_ID: ${{ github.event.client_payload.national_id }}
@@ -6,7 +6,7 @@
         run: |
           node -e '
             const fs = require("fs");
-            const filePath = "data.json";
+            const filePath = "students.json";
             
             let data = [];
             if (fs.existsSync(filePath)) {
