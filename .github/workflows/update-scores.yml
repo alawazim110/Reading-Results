@@ -13,27 +13,53 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Update Student Score in students.json
-        id: process-scores
+        env:
+          STUDENT_NAME: ${{ github.event.client_payload.student_name }}
+          NATIONAL_ID: ${{ github.event.client_payload.national_id }}
+          SCORE: ${{ github.event.client_payload.score }}
         run: |
           node -e '
             const fs = require("fs");
-            const filePath = "data.json";
+            const filePath = "students.json";
             
-            let data = [];
-            if (fs.existsSync(filePath)) {
-              try {
-                data = JSON.parse(fs.readFileSync(filePath, "utf8"));
-              } catch (e) {
-                data = [];
-              }
+            if (!fs.existsSync(filePath)) {
+              console.error("students.json not found!");
+              process.exit(1);
             }
             
-            data.push({
-              student: process.env.STUDENT_NAME,
-              national_id: process.env.NATIONAL_ID,
-              score: Number(process.env.SCORE),
-              date: new Date().toISOString()
-            });
-            
+            let data = JSON.parse(fs.readFileSync(filePath, "utf8"));
+            const targetId = String(process.env.NATIONAL_ID).trim();
+            const newScore = Number(process.env.SCORE) || 0;
+
+            function updateStudentResults(obj) {
+              if (Array.isArray(obj)) {
+                obj.forEach(student => {
+                  if (student && typeof student === "object") {
+                    const sId = String(student.id || student.nationalId || student["National ID"] || student["معرف الطالب"] || "").trim();
+                    if (sId === targetId) {
+                      if (!Array.isArray(student.results)) {
+                        student.results = [];
+                      }
+                      student.results.push(newScore);
+                      if (student.results.length > 5) {
+                        student.results = student.results.slice(-5);
+                      }
+                    }
+                  }
+                });
+              } else if (typeof obj === "object" && obj !== null) {
+                Object.keys(obj).forEach(key => updateStudentResults(obj[key]));
+              }
+            }
+
+            updateStudentResults(data);
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
           '
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
+          git add students.json
+          git commit -m "Auto-update score for student ID: ${{ github.event.client_payload.national_id }}" || exit 0
+          git push
