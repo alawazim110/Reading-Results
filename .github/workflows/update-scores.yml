@@ -1,12 +1,23 @@
-- name: Update students.json
-        env:
-          STUDENT_NAME: ${{ github.event.client_payload.student_name }}
-          NATIONAL_ID: ${{ github.event.client_payload.national_id }}
-          SCORE: ${{ github.event.client_payload.score }}
+name: Update Student Scores
+
+on:
+  repository_dispatch:
+    types: [student_score, update-scores, student-scores-updated]
+  workflow_dispatch:
+
+jobs:
+  update-score:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update Student Score in students.json
+        id: process-scores
         run: |
           node -e '
             const fs = require("fs");
-            const filePath = "students.json";
+            const filePath = "data.json";
             
             let data = [];
             if (fs.existsSync(filePath)) {
