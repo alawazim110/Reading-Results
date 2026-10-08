@@ -5,6 +5,9 @@ on:
     types: [student_score, update-scores, student-scores-updated]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update-score:
     runs-on: ubuntu-latest
@@ -35,14 +38,33 @@ jobs:
               if (Array.isArray(obj)) {
                 obj.forEach(student => {
                   if (student && typeof student === "object") {
-                    const sId = String(student.id || student.nationalId || student["National ID"] || student["معرف الطالب"] || "").trim();
+                    const sId = String(
+                      student.id || 
+                      student.nationalId || 
+                      student["National ID"] || 
+                      student["معرف الطالب"] || ""
+                    ).trim();
+
                     if (sId === targetId) {
-                      if (!Array.isArray(student.results)) {
-                        student.results = [];
+                      // تحديد المفتاح سواء كان score أو results
+                      const key = student.hasOwnProperty("score") ? "score" : "results";
+
+                      if (!Array.isArray(student[key])) {
+                        student[key] = [];
                       }
-                      student.results.push(newScore);
-                      if (student.results.length > 5) {
-                        student.results = student.results.slice(-5);
+
+                      // 1. إزالة الصفر الافتراضي (0) إن وجد لإفساد المجال للنتيجة الجديدة
+                      const zeroIndex = student[key].indexOf(0);
+                      if (zeroIndex !== -1) {
+                        student[key].splice(zeroIndex, 1);
+                      }
+
+                      // 2. إضافة النتيجة الجديدة
+                      student[key].push(newScore);
+
+                      // 3. الإبقاء على أحدث 5 نتائج فقط (حذف الأقدم إذا تجاوزت 5)
+                      if (student[key].length > 5) {
+                        student[key] = student[key].slice(-5);
                       }
                     }
                   }
@@ -58,8 +80,8 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add students.json
-          git commit -m "Auto-update score for student ID: ${{ github.event.client_payload.national_id }}" || exit 0
-          git push
+          git status
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update score for student ID: ${{ github.event.client_payload.national_id }}" && git push)
