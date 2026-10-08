@@ -48,24 +48,21 @@ jobs:
                     if (sId === targetId) {
                       const key = student.hasOwnProperty("score") ? "score" : "results";
 
-                      // 1. تصفية القائمة من الأصفار الافتراضية
-                      if (Array.isArray(student[key])) {
-                        student[key] = student[key].filter(v => v !== 0 && v !== "0" && v !== null && v !== "");
+                      // التأكد من وجود مصفوفة بـ 5 أصفار
+                      if (!Array.isArray(student[key]) || student[key].length === 0) {
+                        student[key] = [0, 0, 0, 0, 0];
+                      }
+
+                      // 1. البحث عن أول خانة تحتوي على 0 بدءاً من البداية (من اليمين Index 0)
+                      const firstZeroIndex = student[key].findIndex(v => v === 0 || v === "0" || v === null || v === "");
+
+                      if (firstZeroIndex !== -1) {
+                        // استبدال الصفر بالنتيجة الجديدة في موقعه المباشر (تظهر تحت Score 1 فوراً)
+                        student[key][firstZeroIndex] = newScore;
                       } else {
-                        student[key] = [];
-                      }
-
-                      // 2. إضافة النتيجة الجديدة في بداية القائمة لتظهر في Score 1
-                      student[key].unshift(newScore);
-
-                      // 3. إذا تجاوزت النتائج 5، حذف النتيجة الأقدم (التي أصبحت في آخر القائمة)
-                      if (student[key].length > 5) {
-                        student[key] = student[key].slice(0, 5);
-                      }
-
-                      // 4. تعبئة باقي الخانات الـ 5 بأصفار في النهاية
-                      while (student[key].length < 5) {
-                        student[key].push(0);
+                        // 2. إذا كانت الخانات الـ 5 المليئة بدرجات حقيقية، احذف الأقدم (من جهة اليمين) وادفع الدرجات للخانة التالية
+                        student[key].shift(); // حذف الأقدم في Index 0
+                        student[key].push(newScore); // إضافة النتيجة الجديدة في الخانة الأخيرة
                       }
                     }
                   }
