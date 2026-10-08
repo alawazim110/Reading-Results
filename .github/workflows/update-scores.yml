@@ -46,25 +46,20 @@ jobs:
                     ).trim();
 
                     if (sId === targetId) {
-                      // تحديد المفتاح سواء كان score أو results
                       const key = student.hasOwnProperty("score") ? "score" : "results";
 
                       if (!Array.isArray(student[key])) {
-                        student[key] = [];
+                        student[key] = [0, 0, 0, 0, 0];
                       }
 
-                      // 1. إزالة الصفر الافتراضي (0) إن وجد لإفساد المجال للنتيجة الجديدة
+                      // الجزء الذي تم إعادته: استبدال أول صفر موجود في القائمة بدلاً من push للنهاية
                       const zeroIndex = student[key].indexOf(0);
+
                       if (zeroIndex !== -1) {
-                        student[key].splice(zeroIndex, 1);
-                      }
-
-                      // 2. إضافة النتيجة الجديدة
-                      student[key].push(newScore);
-
-                      // 3. الإبقاء على أحدث 5 نتائج فقط (حذف الأقدم إذا تجاوزت 5)
-                      if (student[key].length > 5) {
-                        student[key] = student[key].slice(-5);
+                        student[key][zeroIndex] = newScore;
+                      } else {
+                        student[key].shift();
+                        student[key].push(newScore);
                       }
                     }
                   }
@@ -83,5 +78,4 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add students.json
-          git status
           git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update score for student ID: ${{ github.event.client_payload.national_id }}" && git push)
