@@ -48,18 +48,24 @@ jobs:
                     if (sId === targetId) {
                       const key = student.hasOwnProperty("score") ? "score" : "results";
 
-                      if (!Array.isArray(student[key])) {
-                        student[key] = [0, 0, 0, 0, 0];
+                      // 1. تصفية القائمة من الأصفار الافتراضية
+                      if (Array.isArray(student[key])) {
+                        student[key] = student[key].filter(v => v !== 0 && v !== "0" && v !== null && v !== "");
+                      } else {
+                        student[key] = [];
                       }
 
-                      // الجزء الذي تم إعادته: استبدال أول صفر موجود في القائمة بدلاً من push للنهاية
-                      const zeroIndex = student[key].indexOf(0);
+                      // 2. إضافة النتيجة الجديدة في بداية القائمة لتظهر في Score 1
+                      student[key].unshift(newScore);
 
-                      if (zeroIndex !== -1) {
-                        student[key][zeroIndex] = newScore;
-                      } else {
-                        student[key].shift();
-                        student[key].push(newScore);
+                      // 3. إذا تجاوزت النتائج 5، حذف النتيجة الأقدم (التي أصبحت في آخر القائمة)
+                      if (student[key].length > 5) {
+                        student[key] = student[key].slice(0, 5);
+                      }
+
+                      // 4. تعبئة باقي الخانات الـ 5 بأصفار في النهاية
+                      while (student[key].length < 5) {
+                        student[key].push(0);
                       }
                     }
                   }
