@@ -445,18 +445,21 @@
                 const progressText = progress > 0 ? `+${progress}%` : `${progress}%`;
                 const isTestUser = String(student.nationalId) === "9999" || String(student.stage).includes("Test");
 
+                // إنشاء حقول إدخال الدرجات مرتبة من الدرجة الأولى (يمين) إلى الدرجة الخامسة (يسار)
+                const scoresCellsHTML = scores.map((score, idx) => `
+                    <td>
+                        <input type="number" min="0" max="100" class="score-input" 
+                               value="${score || ''}" 
+                               oninput="updateScore('${student.nationalId}',${idx}, this.value)">
+                    </td>
+                `).join('');
+
                 tableHTML += `
                     <tr style="${isTestUser ? 'background-color: #fef9c3;' : ''}">
                         <td>${index + 1}</td>
                         <td style="text-align: right; font-weight: 500;">${student.name}</td>
                         <td>${student.nationalId}</td>
-                        ${scores.map((score, idx) => `
-                            <td>
-                                <input type="number" min="0" max="100" class="score-input" 
-                                       value="${score || ''}" 
-                                       oninput="updateScore('${student.nationalId}',${idx}, this.value)">
-                            </td>
-                        `).join('')}
+                        ${scoresCellsHTML}
                         <td id="progress-${student.nationalId}" class="${getProgressClass(progress)}">${progressText}</td>
                     </tr>
                 `;

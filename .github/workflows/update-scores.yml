@@ -5,6 +5,9 @@ on:
     types: [student_score, update-scores, student-scores-updated]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update-score:
     runs-on: ubuntu-latest
@@ -35,15 +38,36 @@ jobs:
               if (Array.isArray(obj)) {
                 obj.forEach(student => {
                   if (student && typeof student === "object") {
-                    const sId = String(student.id || student.nationalId || student["National ID"] || student["معرف الطالب"] || "").trim();
+                    const sId = String(
+                      student.id || 
+                      student.nationalId || 
+                      student["National ID"] || 
+                      student["معرف الطالب"] || ""
+                    ).trim();
+
                     if (sId === targetId) {
-                      if (!Array.isArray(student.results)) {
-                        student.results = [];
+                      const key = student.hasOwnProperty("score") ? "score" : "results";
+
+                      // 1. Filter out default 0s to keep only genuine scores
+                      let realScores = [];
+                      if (Array.isArray(student[key])) {
+                        realScores = student[key].filter(v => v !== 0 && v !== "0" && v !== null && v !== "");
                       }
-                      student.results.push(newScore);
-                      if (student.results.length > 5) {
-                        student.results = student.results.slice(-5);
+
+                      // 2. Add the NEW score at index 0 (Score 1 column)
+                      realScores.unshift(newScore);
+
+                      // 3. Keep maximum 5 scores (drops the oldest score if more than 5)
+                      if (realScores.length > 5) {
+                        realScores = realScores.slice(0, 5);
                       }
+
+                      // 4. Fill remaining empty slots with trailing zeros (Score 2, 3, 4, 5)
+                      while (realScores.length < 5) {
+                        realScores.push(0);
+                      }
+
+                      student[key] = realScores;
                     }
                   }
                 });
@@ -58,8 +82,7 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          git config --global user.name "GitHub Action Bot"
-          git config --global user.email "action@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add students.json
-          git commit -m "Auto-update score for student ID: ${{ github.event.client_payload.national_id }}" || exit 0
-          git push
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update score for student ID: ${{ github.event.client_payload.national_id }}" && git push)
