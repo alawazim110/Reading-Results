@@ -205,7 +205,7 @@
                             className: className || key,
                             name: student.name || student["Student Name"] || "",
                             nationalId: student.id || student.nationalId || student["National ID"] || "",
-                            results: student.results ? [...student.results] : [0, 0, 0, 0, 0]
+                            scores: student.scores ? [...student.scores] : (student.results ? [...student.results] : [0, 0, 0, 0, 0])
                         });
                     }
                 } else if (typeof value === 'object' && value !== null) {
@@ -373,10 +373,11 @@
         const student = currentRawData.find(s => String(s.nationalId) === String(studentId));
         if (student) {
             const val = parseFloat(newValue) || 0;
-            while (student.results.length < 5) student.results.push(0);
-            student.results[scoreIndex] = val;
+            if (!student.scores) student.scores = [0, 0, 0, 0, 0];
+            while (student.scores.length < 5) student.scores.push(0);
+            student.scores[scoreIndex] = val;
 
-            const scores = getLatestFiveScores(student.results);
+            const scores = getLatestFiveScores(student.scores);
             const progress = calculateProgress(scores);
             const progressCell = document.getElementById(`progress-${studentId}`);
             if (progressCell) {
@@ -440,12 +441,11 @@
             `;
 
             students.forEach((student, index) => {
-                const scores = getLatestFiveScores(student.results || []);
+                const scores = getLatestFiveScores(student.scores || []);
                 const progress = calculateProgress(scores);
                 const progressText = progress > 0 ? `+${progress}%` : `${progress}%`;
                 const isTestUser = String(student.nationalId) === "9999" || String(student.stage).includes("Test");
 
-                // إنشاء حقول إدخال الدرجات مرتبة من الدرجة الأولى (يمين) إلى الدرجة الخامسة (يسار)
                 const scoresCellsHTML = scores.map((score, idx) => `
                     <td>
                         <input type="number" min="0" max="100" class="score-input" 
