@@ -46,7 +46,7 @@ jobs:
                     ).trim();
 
                     if (sId === targetId) {
-                      const key = student.hasOwnProperty("score") ? "score" : "results";
+                      const key = student.hasOwnProperty("score") ? "score" : "scores";
 
                       // 1. Filter out default 0s to keep only genuine scores
                       let realScores = [];
@@ -62,7 +62,7 @@ jobs:
                         realScores = realScores.slice(0, 5);
                       }
 
-                      // 4. Fill remaining empty slots with trailing zeros (Score 2, 3, 4, 5)
+                      // 4. Fill remaining empty slots with trailing zeros ( 5, 4, 3, Score 2)
                       while (realScores.length < 5) {
                         realScores.push(0);
                       }
